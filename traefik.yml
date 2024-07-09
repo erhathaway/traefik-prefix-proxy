@@ -1,0 +1,6 @@
+displayName: Prefix Proxy
+type: middleware
+import: github.com/erhathaway/traefik-prefix-proxy
+summary: 'Remove prefix from request and add it back to response'
+testData:
+  prefix: api
