@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/middlewares"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -57,12 +56,14 @@ func (p *prefixProxy) GetTracingInformation() (string, string, trace.SpanKind) {
 func (p *prefixProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	logger := middlewares.GetLogger(req.Context(), p.name, typeName)
 
+	var prefixRemoved bool
 	oldPath := req.URL.Path
 	if strings.HasPrefix(req.URL.Path, "/"+p.prefix) {
 		req.URL.Path = strings.TrimPrefix(req.URL.Path, "/"+p.prefix)
 		if req.URL.Path == "" {
 			req.URL.Path = "/"
 		}
+		prefixRemoved = true
 		logger.Debug().Msgf("URL.Path is now %s (was %s).", req.URL.Path, oldPath)
 	}
 
@@ -73,6 +74,7 @@ func (p *prefixProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			if req.URL.RawPath == "" {
 				req.URL.RawPath = "/"
 			}
+			prefixRemoved = true
 			logger.Debug().Msgf("URL.RawPath is now %s (was %s).", req.URL.RawPath, oldRawPath)
 		}
 	}
@@ -82,6 +84,7 @@ func (p *prefixProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	crw := &customResponseWriter{
 		ResponseWriter: rw,
 		prefix:         p.prefix,
+		prefixRemoved:  prefixRemoved,
 	}
 
 	p.next.ServeHTTP(crw, req)
@@ -89,11 +92,12 @@ func (p *prefixProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 type customResponseWriter struct {
 	http.ResponseWriter
-	prefix string
+	prefix        string
+	prefixRemoved bool
 }
 
 func (crw *customResponseWriter) WriteHeader(statusCode int) {
-	if location := crw.Header().Get("Location"); location != "" {
+	if location := crw.Header().Get("Location"); location != "" && crw.prefixRemoved {
 		if !strings.HasPrefix(location, "/"+crw.prefix) {
 			crw.Header().Set("Location", "/"+crw.prefix+location)
 		}
