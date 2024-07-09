@@ -99,7 +99,11 @@ type customResponseWriter struct {
 func (crw *customResponseWriter) WriteHeader(statusCode int) {
 	if location := crw.Header().Get("Location"); location != "" && crw.prefixRemoved {
 		if !strings.HasPrefix(location, "/"+crw.prefix) {
-			crw.Header().Set("Location", "/"+crw.prefix+location)
+			if location == "/" {
+				crw.Header().Set("Location", "/"+crw.prefix)
+			} else {
+				crw.Header().Set("Location", "/"+crw.prefix+location)
+			}
 		}
 	}
 	crw.ResponseWriter.WriteHeader(statusCode)

@@ -107,6 +107,7 @@ func TestPrefixProxy(t *testing.T) {
 				actualPath = r.URL.Path
 				actualRawPath = r.URL.RawPath
 				w.Header().Set("Location", test.location)
+				w.WriteHeader(http.StatusFound) // Add this line to ensure WriteHeader is called
 			})
 
 			req, err := http.NewRequest(http.MethodGet, "http://localhost"+test.path, nil)
