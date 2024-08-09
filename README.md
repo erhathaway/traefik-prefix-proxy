@@ -1,4 +1,4 @@
 # traefik-prefix-proxy
 This is a toy repo. 
 
-This middleware will route to another service based on a request path prefix
+PrefixProxy is a middleware that removes a specified prefix from the request path and adds it back to the response.
